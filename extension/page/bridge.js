@@ -63,7 +63,29 @@
     }));
   }
 
-  const handlers = { status: async () => status(), checkNumber: (a) => checkNumber(a[0]), sendText: (a) => sendText(a[0], a[1], a[2]), sendFile: (a) => sendFile(a[0], a[1], a[2]), listContacts: () => listContacts() };
+  // Delivery status (ack: 1 sent, 2 delivered, 3 read) and replies for a list of
+  // sent items: [{ phone, msgId, since }] where since is a ms timestamp.
+  async function getStats(items) {
+    const WPP = window.WPP;
+    const out = [];
+    for (const it of items || []) {
+      const r = { phone: it.phone, ack: null, replies: 0, lastReply: null };
+      try {
+        if (it.msgId) { const m = await WPP.chat.getMessageById(it.msgId); if (m && typeof m.ack === 'number') r.ack = m.ack; }
+      } catch {}
+      try {
+        const msgs = await WPP.chat.getMessages(it.phone + '@c.us', { count: 30 });
+        const since = Math.floor((it.since || 0) / 1000);
+        const inbound = (msgs || []).filter((m) => m && m.id && !m.id.fromMe && (m.t || 0) >= since);
+        r.replies = inbound.length;
+        if (inbound.length) { const last = inbound[inbound.length - 1]; r.lastReply = last.body || (last.type ? '[' + last.type + ']' : ''); }
+      } catch {}
+      out.push(r);
+    }
+    return out;
+  }
+
+  const handlers = { status: async () => status(), checkNumber: (a) => checkNumber(a[0]), sendText: (a) => sendText(a[0], a[1], a[2]), sendFile: (a) => sendFile(a[0], a[1], a[2]), listContacts: () => listContacts(), getStats: (a) => getStats(a[0]) };
 
   window.addEventListener('message', async (ev) => {
     const m = ev.data;
@@ -92,6 +114,7 @@
         } catch {}
       });
     } catch {}
+    try { WPP.on('chat.msg_ack_change', (ev) => { try { emit('ack', { ack: ev.ack, ids: (ev.ids || []).map((k) => serialWid(k)) }); } catch {} }); } catch {}
     emit('bridge-loaded', status());
   }
   hook();

@@ -113,7 +113,7 @@
     th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #e3e8ee;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     th{color:#6b7683;font-weight:600;font-size:11px;text-transform:uppercase}
     .tbl{overflow-x:auto;margin-top:6px}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
     .stat{background:#f4f6f8;border-radius:8px;padding:6px 8px;text-align:center}
     .stat .v{font-size:18px;font-weight:700}.stat .l{font-size:10.5px;color:#6b7683;text-transform:uppercase}
     .bar{height:8px;background:#e9edf1;border-radius:999px;overflow:hidden;display:flex}
@@ -136,6 +136,7 @@
     <div class="body">
       <div id="connectBox" class="warn">Scan the QR code on this page with your phone (WhatsApp → Linked devices → Link a device). The panel unlocks once WhatsApp Web is connected.</div>
       <div id="resumeBox" class="note" style="display:none"></div>
+      <div id="updateBox" class="note" style="display:none"></div>
 
       <div class="card">
         <h2><span class="n">1</span> Contacts <span class="muted" id="contactCount" style="font-weight:400;margin-left:auto"></span></h2>
@@ -202,14 +203,17 @@
         <div id="runBox" style="display:none">
           <div class="stats">
             <div class="stat"><div class="v" id="nSent">0</div><div class="l">Sent</div></div>
+            <div class="stat"><div class="v" id="nDelivered">0</div><div class="l">Delivered</div></div>
+            <div class="stat"><div class="v" id="nRead">0</div><div class="l">Read</div></div>
+            <div class="stat"><div class="v" id="nReplied">0</div><div class="l">Replied</div></div>
             <div class="stat"><div class="v" id="nFailed">0</div><div class="l">Failed</div></div>
-            <div class="stat"><div class="v" id="nSkipped">0</div><div class="l">Skipped</div></div>
-            <div class="stat"><div class="v" id="nPending">0</div><div class="l">Pending</div></div>
+            <div class="stat"><div class="v" id="nSkipped">0</div><div class="l">Skipped <span id="nPending"></span></div></div>
           </div>
           <div class="bar"><i class="s" id="bS"></i><i class="f" id="bF"></i><i class="k" id="bK"></i></div>
           <div class="help" id="eta"></div>
           <div class="log" id="log"></div>
-          <div class="actions"><button class="btn sec sm" id="report">⬇ Download report (CSV)</button><button class="btn sec sm" id="retry" style="display:none">↻ Retry failed</button><button class="btn sec sm" id="clearRun">Clear</button></div>
+          <div class="actions"><button class="btn sec sm" id="report">⬇ Download report (CSV)</button><button class="btn sec sm" id="refreshStats">↻ Refresh delivery &amp; replies</button><button class="btn sec sm" id="retry" style="display:none">↻ Retry failed</button><button class="btn sec sm" id="clearRun">Clear</button></div>
+          <div class="help" id="statsInfo">Delivered / read come from WhatsApp's ticks (read needs the recipient's read receipts on). Replied counts any message from them after yours.</div>
         </div>
       </div>
 
@@ -267,8 +271,11 @@
     el.scrollTop = el.scrollHeight;
   }
   function counts() {
-    const c = { sent: 0, failed: 0, skipped: 0, pending: 0, total: S.run.items.length };
-    for (const it of S.run.items) c[it.status] = (c[it.status] || 0) + 1;
+    const c = { sent: 0, failed: 0, skipped: 0, pending: 0, delivered: 0, read: 0, replied: 0, total: S.run.items.length };
+    for (const it of S.run.items) {
+      c[it.status] = (c[it.status] || 0) + 1;
+      if (it.status === 'sent') { if (it.ack >= 2) c.delivered++; if (it.ack >= 3) c.read++; if (it.replies > 0) c.replied++; }
+    }
     return c;
   }
   function download(name, text, mime) {
@@ -454,7 +461,8 @@
   }
   function renderProgress() {
     const c = counts();
-    $('nSent').textContent = c.sent; $('nFailed').textContent = c.failed; $('nSkipped').textContent = c.skipped; $('nPending').textContent = c.pending;
+    $('nSent').textContent = c.sent; $('nFailed').textContent = c.failed; $('nSkipped').textContent = c.skipped; $('nPending').textContent = c.pending ? '· ' + c.pending + ' pending' : '';
+    $('nDelivered').textContent = c.delivered; $('nRead').textContent = c.read; $('nReplied').textContent = c.replied;
     const pct = (n) => (c.total ? (n / c.total * 100) + '%' : '0%');
     $('bS').style.width = pct(c.sent); $('bF').style.width = pct(c.failed); $('bK').style.width = pct(c.skipped);
     const avg = (S.settings.delayMin + S.settings.delayMax) / 2 + (S.settings.batchSize ? S.settings.batchPause / S.settings.batchSize : 0);
@@ -499,8 +507,9 @@
           if (!r.exists) { item.status = 'failed'; item.reason = 'not on WhatsApp'; logLine('failed', `+${item.phone}: not on WhatsApp`); store.run(); renderProgress(); await waitWhile(token, L.rand(1500, 3500)); continue; }
           chatId = r.wid || chatId;
         }
-        await sendOne(chatId, text);
+        const res = await sendOne(chatId, text);
         item.status = 'sent'; item.reason = null; item.sentAt = new Date().toISOString();
+        item.msgId = res && typeof res.id === 'string' ? res.id : null; item.ack = 1; item.replies = 0;
         S.daily.count++; store.daily();
         inBatch++;
         logLine('sent', `+${item.phone} sent${item.row && item.row.name ? ' (' + item.row.name + ')' : ''}`);
@@ -541,6 +550,39 @@
   $('clearRun').addEventListener('click', () => { if (['running', 'paused'].includes(S.run.status) && !confirm('A run is in progress. Clear it?')) return; runToken++; S.run = { status: 'idle', items: [], startedAt: null, finishedAt: null, log: [] }; $('log').innerHTML = ''; $('resumeBox').style.display = 'none'; store.run(); renderReady(); });
   $('reload').addEventListener('click', () => location.reload());
 
+  // ---------------------------------------------------------------- delivery & replies
+  let statsBusy = false;
+  async function refreshStats(manual) {
+    if (statsBusy || !(S.wa.authenticated && S.wa.mainReady)) return;
+    const sent = S.run.items.filter((i) => i.status === 'sent');
+    if (!sent.length) return;
+    statsBusy = true;
+    if (manual) $('refreshStats').textContent = 'Refreshing…';
+    try {
+      for (let i = 0; i < sent.length; i += 25) {   // small batches so a long run does not block the page
+        const chunk = sent.slice(i, i + 25);
+        const res = await bridge('getStats', [chunk.map((it) => ({ phone: it.phone, msgId: it.msgId, since: Date.parse(it.sentAt || 0) || 0 }))], 60000);
+        for (let j = 0; j < chunk.length; j++) {
+          const r = res[j]; if (!r) continue;
+          if (typeof r.ack === 'number' && r.ack > (chunk[j].ack || 0)) chunk[j].ack = r.ack;
+          if (r.replies > (chunk[j].replies || 0)) { chunk[j].replies = r.replies; chunk[j].lastReply = r.lastReply; logLine('info', '+' + chunk[j].phone + ' replied: ' + String(r.lastReply || '').slice(0, 60)); }
+        }
+      }
+      S.run.statsAt = new Date().toISOString();
+      store.run(); renderProgress();
+      $('statsInfo').textContent = 'Updated ' + new Date().toLocaleTimeString() + '. Delivered / read come from WhatsApp\'s ticks (read needs the recipient\'s read receipts on). Replied counts any message from them after yours.';
+    } catch (e) { if (manual) alert('Could not refresh: ' + e.message); }
+    statsBusy = false;
+    if (manual) $('refreshStats').textContent = '↻ Refresh delivery & replies';
+  }
+  $('refreshStats').addEventListener('click', () => refreshStats(true));
+  // auto-refresh every 30 s while the panel is open and the run is recent (< 24 h)
+  setInterval(() => {
+    if (!S.open || !S.run.items.length) return;
+    const t = Date.parse(S.run.finishedAt || S.run.startedAt || 0);
+    if (S.run.status === 'running' || (t && Date.now() - t < 24 * 3600 * 1000)) refreshStats(false);
+  }, 30000);
+
   // ---------------------------------------------------------------- WA status
   function applyStatus(st) {
     if (!st) return;
@@ -554,7 +596,18 @@
     renderReady();
   }
   eventHandlers.push((name, data) => {
+    if (name === 'ack') {
+      if (!data || !data.ids) return;
+      let changed = false;
+      for (const it of S.run.items) if (it.msgId && data.ids.includes(it.msgId) && data.ack > (it.ack || 0)) { it.ack = data.ack; changed = true; }
+      if (changed) { store.run(); renderProgress(); }
+      return;
+    }
     if (name === 'incoming') {
+      if (data && data.phone) {
+        const it = S.run.items.find((i) => i.status === 'sent' && i.phone === data.phone);
+        if (it) { it.replies = (it.replies || 0) + 1; it.lastReply = data.body; logLine('info', '+' + it.phone + ' replied: ' + String(data.body || '').slice(0, 60)); store.run(); renderProgress(); }
+      }
       if (!S.settings.autoOptout || !data || !data.phone) return;
       const kws = S.settings.optoutKeywords.split(',').map((k) => k.trim().toUpperCase()).filter(Boolean);
       const t = String(data.body || '').trim().toUpperCase();
@@ -589,5 +642,17 @@
     renderReady();
     setOpen(S.open);
     pollStatus(); setInterval(pollStatus, 3000);
+    if (S.run.items.length) setTimeout(() => refreshStats(false), 6000);
+    // newer release available? (for installs done with "Load unpacked")
+    try {
+      chrome.runtime.sendMessage({ type: 'wab:checkUpdate' });
+      const { wab_latest } = await chrome.storage.local.get('wab_latest');
+      const mine = chrome.runtime.getManifest().version;
+      const newer = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) > (y[i] || 0)) return true; if ((x[i] || 0) < (y[i] || 0)) return false; } return false; };
+      if (wab_latest && wab_latest.version && newer(wab_latest.version, mine)) {
+        $('updateBox').style.display = '';
+        $('updateBox').innerHTML = 'Version ' + esc(wab_latest.version) + ' is available (you have ' + esc(mine) + '). <a href="' + esc(wab_latest.url) + '" target="_blank" rel="noopener">Download it</a>, unzip over your extension folder, then click the reload icon on chrome://extensions.';
+      }
+    } catch {}
   })();
 })();

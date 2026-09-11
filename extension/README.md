@@ -31,7 +31,7 @@ Works the same way in Microsoft Edge (`edge://extensions`) and Brave.
    Numbers without a country code get the **default country code** (91 = India). Invalid numbers, duplicates and unsubscribed numbers are skipped automatically and listed in the report.
 4. **Message** – type the text. Click a chip such as `{{name}}` to insert a column. `{{name|there}}` uses "there" when the cell is empty; `{{Hi|Hello|Hey}}` picks one word at random per message so no two messages are identical. Optionally attach an image, PDF, video or document; the text becomes its caption. The preview shows the exact message for the first contact. **Send a test to my own number** delivers it to yourself first.
 5. **Sending speed** – random wait between min and max seconds before every message, plus a longer pause after every batch, and a daily limit. The defaults (10–25 s, pause 2 min every 25, 300/day) are deliberately cautious.
-6. **Send** – click **Start sending** and keep the tab open. You can pause, resume or stop at any time. When it finishes, **Download report (CSV)** gives you sent / failed / skipped with the reason and the exact text sent. **Retry failed** re-queues the failures.
+6. **Send** – click **Start sending** and keep the tab open. The tiles show sent / delivered / read / replied / failed / skipped; delivered and read follow WhatsApp's ticks and update live, replied counts any message from that person after yours (also picked up later with **Refresh delivery & replies**). You can pause, resume or stop at any time. When it finishes, **Download report (CSV)** gives you sent / failed / skipped with the reason and the exact text sent. **Retry failed** re-queues the failures.
 
 The **Unsubscribe list** holds numbers that must never be messaged. When someone replies STOP (keywords are configurable) while WhatsApp Web is open, they are added automatically.
 
@@ -50,7 +50,7 @@ This automates WhatsApp Web, exactly like the paid "WA Sender"-style extensions.
 
 ## Updating
 
-Download the new zip, unzip it over the same folder, then click the refresh icon on the extension card in `chrome://extensions`.
+The panel shows a banner when a newer release exists on GitHub. Download the new zip, unzip it over the same folder, then click the refresh icon on the extension card in `chrome://extensions`. (Installs from the Chrome Web Store update by themselves.)
 
 ## Files
 

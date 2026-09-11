@@ -75,6 +75,9 @@ const ok = (m) => console.log('ok  ', m);
     WPP.conn.getMyUserId = () => ({ user: '919999999999', _serialized: '919999999999@c.us', toString() { return '919999999999@c.us'; } });
     WPP.contact.queryExists = async (id) => { window.__checked.push(id); return id.startsWith('919000000000') ? null : { wid: { _serialized: id } }; };
     WPP.chat.sendTextMessage = async (id, text, opts) => { window.__sent.push({ id: String(id), text, opts }); return { id: 'true_' + id + '_' + Date.now() }; };
+    // delivery ticks: 919876543210 read (3), everything else delivered (2); only Rahul replies
+    WPP.chat.getMessageById = async (id) => ({ ack: String(id).includes('919876543210') ? 3 : 2 });
+    WPP.chat.getMessages = async (chatId) => String(chatId).startsWith('919876543210') ? [{ id: { fromMe: false }, t: Math.floor(Date.now() / 1000) + 5, body: 'Thanks, interested!' }] : [];
     WPP.chat.sendFileMessage = async (id, data, opts) => { window.__sent.push({ id: String(id), file: opts, len: data.length }); return { id: 'f' + Date.now() }; };
     WPP.contact.list = async () => [{ id: { server: 'c.us', user: '919811111111' }, name: 'Saved One' }, { id: { server: 'g.us', user: '1' }, name: 'group' }];
   });
@@ -120,7 +123,7 @@ const ok = (m) => console.log('ok  ', m);
   console.log('fake sends:', JSON.stringify(sent));
   console.log('fake checks:', JSON.stringify(checked));
   if (!/Finished/.test(status)) fail('run did not finish');
-  if (counts.sent !== '2' || counts.failed !== '1' || counts.skipped !== '2' || counts.pending !== '0') fail('counts wrong');
+  if (counts.sent !== '2' || counts.failed !== '1' || counts.skipped !== '2' || counts.pending !== '') fail('counts wrong: ' + JSON.stringify(counts));
   else ok('run finished: 2 sent, 1 failed (not on WhatsApp), 2 skipped');
   if (sent.length !== 2 || sent[0].text !== 'Hi Rahul from Pune' || sent[1].text !== 'Hi Emma from Leeds') fail('rendered messages wrong');
   else ok('each message personalised with the row values');
@@ -129,6 +132,14 @@ const ok = (m) => console.log('ok  ', m);
   if (!sent.every((s) => s.opts && s.opts.createChat)) fail('createChat not set');
   const logTxt = await sh(($) => $('log').textContent);
   if (!/Batch done/.test(logTxt)) fail('batch pause not logged'); else ok('batch pause applied after 2 messages');
+
+  // analytics: refresh delivery + replies
+  await sh(($) => $('refreshStats').click());
+  await sleep(2500);
+  const an = await sh(($) => ({ delivered: $('nDelivered').textContent, read: $('nRead').textContent, replied: $('nReplied').textContent, log: $('log').textContent }));
+  console.log('analytics:', an.delivered, an.read, an.replied);
+  if (an.delivered !== '2' || an.read !== '1' || an.replied !== '1' || !/replied: Thanks, interested/.test(an.log)) fail('analytics wrong: ' + JSON.stringify(an));
+  else ok('analytics: 2 delivered, 1 read, 1 replied (from ticks + chat history)');
 
   // 5. attachment path + test send to self
   await page.evaluate(() => {

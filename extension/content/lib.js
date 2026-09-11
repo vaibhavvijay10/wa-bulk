@@ -163,9 +163,10 @@
 
   function toCSV(columns, items) {
     const esc = (v) => { const s = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-    const head = ['phone', 'status', 'reason', 'sent_at', ...columns, 'message'];
+    const ackName = (a) => (a >= 3 ? 'read' : a >= 2 ? 'delivered' : a >= 1 ? 'sent' : '');
+    const head = ['phone', 'status', 'delivery', 'replied', 'last_reply', 'reason', 'sent_at', ...columns, 'message'];
     const lines = [head.map(esc).join(',')];
-    for (const it of items) lines.push([it.phone, it.status, it.reason || '', it.sentAt || '', ...columns.map((c) => (it.row || {})[c]), it.rendered || ''].map(esc).join(','));
+    for (const it of items) lines.push([it.phone, it.status, it.status === 'sent' ? ackName(it.ack) : '', it.replies ? 'yes' : (it.status === 'sent' ? 'no' : ''), it.lastReply || '', it.reason || '', it.sentAt || '', ...columns.map((c) => (it.row || {})[c]), it.rendered || ''].map(esc).join(','));
     return '﻿' + lines.join('\r\n');
   }
 
