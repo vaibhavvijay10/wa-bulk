@@ -1,0 +1,26 @@
+<%- include('partials/header', { title: 'Settings' }) %>
+<h1>Settings</h1>
+<form method="post" action="/settings">
+<div class="grid c2">
+  <div class="card">
+    <h2>Sending limits</h2>
+    <label>Daily cap <small>(messages per day across all campaigns; 0 = no cap)</small></label>
+    <input type="number" name="daily_cap" value="<%= s.daily_cap %>" min="0">
+    <div class="help">Keep this low for a freshly linked number (50–100) and raise it gradually over 2–3 weeks. A number that suddenly sends hundreds of identical messages to strangers is what gets flagged.</div>
+    <label>Timezone <small>(for the daily cap reset and send windows)</small></label>
+    <input type="text" name="timezone" value="<%= s.timezone %>" placeholder="Asia/Kolkata">
+    <label>Default country code <small>(added to numbers without one)</small></label>
+    <input type="text" name="default_country_code" value="<%= s.default_country_code %>">
+    <label><input type="checkbox" name="verify_numbers" <%= s.verify_numbers === '1' ? 'checked' : '' %>> Check that each number is on WhatsApp before sending <small>(recommended — skips dead numbers instead of failing)</small></label>
+  </div>
+  <div class="card">
+    <h2>Opt-outs</h2>
+    <label>Opt-out keywords <small>(comma-separated; a reply that starts with one of these adds the sender to the opt-out list)</small></label>
+    <input type="text" name="optout_keywords" value="<%= s.optout_keywords %>">
+    <label>Auto-reply to opt-outs <small>(optional; leave blank to send nothing)</small></label>
+    <textarea name="optout_reply" style="min-height:80px"><%= s.optout_reply %></textarea>
+  </div>
+</div>
+<button class="btn" type="submit">Save settings</button>
+</form>
+<%- include('partials/footer') %>

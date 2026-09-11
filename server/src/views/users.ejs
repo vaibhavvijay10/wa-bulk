@@ -1,0 +1,31 @@
+<%- include('partials/header', { title: 'Team' }) %>
+<h1>Team</h1>
+<div class="grid c2">
+  <div class="card">
+    <h2>Add a user</h2>
+    <form method="post" action="/users/add">
+      <label>Username</label><input type="text" name="username" required>
+      <label>Password <small>(min 8 characters)</small></label><input type="password" name="password" required minlength="8">
+      <label>Role</label>
+      <select name="role"><option value="sender">Sender — create and run campaigns, inbox, opt-outs</option><option value="admin">Admin — everything, plus link/unlink WhatsApp, team, settings</option></select>
+      <div style="margin-top:12px"><button class="btn" type="submit">Create user</button></div>
+    </form>
+  </div>
+  <div class="card tbl-wrap">
+    <table>
+      <tr><th>User</th><th>Role</th><th>Since</th><th>Actions</th></tr>
+      <% for (const u of users) { %>
+      <tr>
+        <td><b><%= u.username %></b><%= u.id === user.id ? ' (you)' : '' %></td>
+        <td><form class="inline" method="post" action="/users/<%= u.id %>/role"><select name="role" onchange="this.form.submit()" <%= u.id === user.id ? 'disabled' : '' %>><option value="sender" <%= u.role === 'sender' ? 'selected' : '' %>>sender</option><option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>admin</option></select></form></td>
+        <td class="mono muted"><%= u.created_at %></td>
+        <td class="actions">
+          <form class="inline row" method="post" action="/users/<%= u.id %>/password"><div><input type="password" name="password" placeholder="New password" minlength="8" required></div><div style="flex:0"><button class="btn sec sm" type="submit">Set</button></div></form>
+          <% if (u.id !== user.id) { %><form class="inline" method="post" action="/users/<%= u.id %>/delete" onsubmit="return confirm('Delete <%= u.username %>?')"><button class="btn danger sm" type="submit">Delete</button></form><% } %>
+        </td>
+      </tr>
+      <% } %>
+    </table>
+  </div>
+</div>
+<%- include('partials/footer') %>

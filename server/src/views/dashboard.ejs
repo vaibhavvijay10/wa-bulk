@@ -1,0 +1,34 @@
+<%- include('partials/header', { title: 'Dashboard' }) %>
+<h1>Dashboard</h1>
+<div class="grid c4" style="margin-bottom:18px">
+  <div class="stat"><div class="n"><span class="badge <%= wa.state %>" style="font-size:14px"><%= wa.state %></span></div><div class="l">WhatsApp <%= wa.info ? '· +' + wa.info.number : '' %></div></div>
+  <div class="stat"><div class="n" id="sentToday"><%= sentToday %> <span class="muted" style="font-size:14px">/ <%= dailyCap || '∞' %></span></div><div class="l">Sent today (daily cap)</div></div>
+  <div class="stat"><div class="n"><%= unread %></div><div class="l">Replies in last 24h</div></div>
+  <div class="stat"><div class="n"><%= optouts %></div><div class="l">Opted out</div></div>
+</div>
+
+<% if (wa.state !== 'ready') { %>
+<div class="warn">WhatsApp is <b><%= wa.state %></b><%= wa.error ? ' — ' + wa.error : '' %>. Campaigns will wait until a number is linked. <a href="/whatsapp">Link a number</a>.</div>
+<% } %>
+
+<div class="card">
+  <div class="actions" style="justify-content:space-between">
+    <h2 style="margin:0">Recent campaigns</h2>
+    <a class="btn" href="/campaigns/new">+ New campaign</a>
+  </div>
+  <div class="tbl-wrap" style="margin-top:12px">
+  <table>
+    <tr><th>Campaign</th><th>Status</th><th>Progress</th><th>Sent</th><th>Failed</th><th>Pending</th><th>By</th></tr>
+    <% if (!campaigns.length) { %><tr><td colspan="7" class="muted">No campaigns yet. Upload an Excel sheet to create one.</td></tr><% } %>
+    <% for (const c of campaigns) { const done = c.total ? Math.round(((c.sent + c.failed) / c.total) * 100) : 0; %>
+    <tr>
+      <td><a href="/campaigns/<%= c.id %>"><%= c.name %></a><div class="muted mono"><%= c.created_at %></div></td>
+      <td><span class="badge <%= c.status %>"><%= c.status %></span></td>
+      <td style="min-width:140px"><div class="bar"><i class="s" style="width:<%= c.total ? c.sent / c.total * 100 : 0 %>%"></i><i class="f" style="width:<%= c.total ? c.failed / c.total * 100 : 0 %>%"></i></div><div class="muted"><%= c.sent + c.failed %> / <%= c.total %></div></td>
+      <td><%= c.sent %></td><td><%= c.failed %></td><td><%= c.pending %></td><td><%= c.creator || '' %></td>
+    </tr>
+    <% } %>
+  </table>
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,21 @@
+<%- include('partials/header', { title: 'Campaigns' }) %>
+<div class="actions" style="justify-content:space-between;margin-bottom:16px">
+  <h1 style="margin:0">Campaigns</h1>
+  <a class="btn" href="/campaigns/new">+ New campaign</a>
+</div>
+<div class="card tbl-wrap">
+  <table>
+    <tr><th>#</th><th>Campaign</th><th>Status</th><th>Total</th><th>Sent</th><th>Failed</th><th>Skipped</th><th>Pending</th><th>By</th><th>Created</th></tr>
+    <% if (!campaigns.length) { %><tr><td colspan="10" class="muted">No campaigns yet.</td></tr><% } %>
+    <% for (const c of campaigns) { %>
+    <tr>
+      <td><%= c.id %></td>
+      <td><a href="/campaigns/<%= c.id %>"><%= c.name %></a><% if (c.attachment_name) { %> <span class="muted">📎</span><% } %></td>
+      <td><span class="badge <%= c.status %>"><%= c.status %></span><% if (c.status === 'scheduled' && c.scheduled_at) { %><div class="muted mono" data-utc="<%= c.scheduled_at %>"></div><% } %></td>
+      <td><%= c.total %></td><td><%= c.sent %></td><td><%= c.failed %></td><td><%= c.skipped %></td><td><%= c.pending %></td>
+      <td><%= c.creator || '' %></td><td class="mono muted"><%= c.created_at %></td>
+    </tr>
+    <% } %>
+  </table>
+</div>
+<%- include('partials/footer') %>

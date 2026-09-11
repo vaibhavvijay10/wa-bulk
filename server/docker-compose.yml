@@ -1,0 +1,31 @@
+services:
+  wa-bulk:
+    build: .
+    container_name: wa-bulk
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"   # only reachable through the reverse proxy (Caddy) below
+    env_file: .env
+    volumes:
+      - ./data:/data            # SQLite DB, WhatsApp session, uploads — back this folder up
+    shm_size: "1gb"             # Chromium needs shared memory
+    init: true
+
+  # HTTPS reverse proxy with automatic Let's Encrypt certificates.
+  # Set DOMAIN in .env (e.g. wa.yourcompany.com pointing at this VPS).
+  caddy:
+    image: caddy:2
+    container_name: wa-bulk-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

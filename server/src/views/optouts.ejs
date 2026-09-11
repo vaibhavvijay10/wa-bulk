@@ -1,0 +1,33 @@
+<%- include('partials/header', { title: 'Opt-outs' }) %>
+<h1>Opt-out list <span class="muted" style="font-size:13px;font-weight:400">(<%= total %> numbers — never messaged by any campaign)</span></h1>
+<div class="grid c2">
+  <div class="card">
+    <h2>Add numbers</h2>
+    <form method="post" action="/optouts/add">
+      <label>Numbers <small>(one per line, or comma-separated)</small></label>
+      <textarea name="phones" style="min-height:90px"></textarea>
+      <label>Note</label><input type="text" name="note" placeholder="e.g. asked via email">
+      <div style="margin-top:10px"><button class="btn" type="submit">Add</button></div>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Import from Excel / CSV</h2>
+    <form method="post" action="/optouts/import" enctype="multipart/form-data">
+      <input type="file" name="sheet" accept=".xlsx,.xls,.csv" required>
+      <div style="margin-top:10px" class="actions"><button class="btn sec" type="submit">Import</button> <a class="btn sec" href="/optouts/export.csv">⬇ Export CSV</a></div>
+    </form>
+    <p class="help">Every cell that looks like a phone number is added. Replies containing an opt-out keyword (see Settings) are added automatically.</p>
+  </div>
+</div>
+<div class="card">
+  <form method="get" class="row" style="margin-bottom:10px"><div><input type="text" name="q" value="<%= q %>" placeholder="Search number"></div><div style="flex:0"><button class="btn sec" type="submit">Search</button></div></form>
+  <div class="tbl-wrap"><table>
+    <tr><th>Phone</th><th>Source</th><th>Note</th><th>Added</th><th></th></tr>
+    <% if (!rows.length) { %><tr><td colspan="5" class="muted">Empty.</td></tr><% } %>
+    <% for (const r of rows) { %>
+    <tr><td class="mono">+<%= r.phone %></td><td><%= r.source %></td><td><%= r.note || '' %></td><td class="mono muted"><%= r.created_at %></td>
+      <td><form class="inline" method="post" action="/optouts/remove"><input type="hidden" name="phone" value="<%= r.phone %>"><button class="btn danger sm" type="submit">Remove</button></form></td></tr>
+    <% } %>
+  </table></div>
+</div>
+<%- include('partials/footer') %>

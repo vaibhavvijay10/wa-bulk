@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>WA Bulk</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+<% if (user) { %>
+<aside class="side">
+  <div class="logo"><span></span> WA Bulk</div>
+  <nav>
+    <a href="/" class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
+    <a href="/campaigns" class="<%= path.startsWith('/campaigns') ? 'active' : '' %>">Campaigns</a>
+    <a href="/inbox" class="<%= path.startsWith('/inbox') ? 'active' : '' %>">Inbox</a>
+    <a href="/optouts" class="<%= path.startsWith('/optouts') ? 'active' : '' %>">Opt-outs</a>
+    <a href="/whatsapp" class="<%= path.startsWith('/whatsapp') ? 'active' : '' %>">WhatsApp <span class="badge <%= waState %>" style="float:right"><%= waState %></span></a>
+    <% if (user.role === 'admin') { %>
+    <a href="/users" class="<%= path.startsWith('/users') ? 'active' : '' %>">Team</a>
+    <a href="/settings" class="<%= path.startsWith('/settings') ? 'active' : '' %>">Settings</a>
+    <% } %>
+  </nav>
+  <div class="who">
+    Signed in as <b><%= user.username %></b> (<%= user.role %>)<% if (mock) { %><br><span style="color:#ffd866">MOCK MODE</span><% } %>
+    <form method="post" action="/logout"><button class="btn sec sm" type="submit">Sign out</button></form>
+  </div>
+</aside>
+<% } %>
+<main class="main">
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>

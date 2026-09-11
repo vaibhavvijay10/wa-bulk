@@ -1,0 +1,69 @@
+<%- include('partials/header', { title: c.name }) %>
+<div class="actions" style="justify-content:space-between;margin-bottom:16px">
+  <h1 style="margin:0"><%= c.name %> <span class="badge <%= c.status %>" id="cStatus"><%= c.status %></span></h1>
+  <div class="actions">
+    <% if (['draft','scheduled','paused'].includes(c.status)) { %><form class="inline" method="post" action="/campaigns/<%= c.id %>/start"><button class="btn" type="submit">▶ Start now</button></form><% } %>
+    <% if (['running','scheduled'].includes(c.status)) { %><form class="inline" method="post" action="/campaigns/<%= c.id %>/pause"><button class="btn sec" type="submit">⏸ Pause</button></form><% } %>
+    <% if (!['completed','cancelled'].includes(c.status)) { %><form class="inline" method="post" action="/campaigns/<%= c.id %>/cancel" onsubmit="return confirm('Cancel this campaign? Pending contacts will not be messaged.')"><button class="btn danger" type="submit">✕ Cancel</button></form><% } %>
+    <% if (c.failed > 0 && !['running'].includes(c.status)) { %><form class="inline" method="post" action="/campaigns/<%= c.id %>/retry-failed"><button class="btn sec" type="submit">↻ Retry failed</button></form><% } %>
+    <a class="btn sec" href="/campaigns/<%= c.id %>/report.csv">⬇ Report (CSV)</a>
+    <% if (user.role === 'admin') { %><form class="inline" method="post" action="/campaigns/<%= c.id %>/delete" onsubmit="return confirm('Delete this campaign and its logs?')"><button class="btn danger" type="submit">Delete</button></form><% } %>
+  </div>
+</div>
+
+<div class="grid c4" style="margin-bottom:18px">
+  <div class="stat"><div class="n" id="nSent"><%= c.sent %></div><div class="l">Sent</div></div>
+  <div class="stat"><div class="n" id="nFailed"><%= c.failed %></div><div class="l">Failed</div></div>
+  <div class="stat"><div class="n" id="nSkipped"><%= c.skipped %></div><div class="l">Skipped</div></div>
+  <div class="stat"><div class="n" id="nPending"><%= c.pending %></div><div class="l">Pending of <%= c.total %></div></div>
+</div>
+<div class="bar" style="margin-bottom:18px"><i class="s" id="bS" style="width:<%= c.total ? c.sent / c.total * 100 : 0 %>%"></i><i class="f" id="bF" style="width:<%= c.total ? c.failed / c.total * 100 : 0 %>%"></i><i class="k" id="bK" style="width:<%= c.total ? c.skipped / c.total * 100 : 0 %>%"></i></div>
+<% if (c.last_error) { %><div class="err">Last error: <%= c.last_error %></div><% } %>
+
+<div class="grid c2">
+  <div class="card">
+    <h2>Message</h2>
+    <div class="preview"><div class="bubble"><%= c.template %></div><% if (c.attachment_name) { %><div class="muted">📎 <%= c.attachment_name %></div><% } %></div>
+    <p class="help">Example as sent to the first contact: <i><%= sample %></i></p>
+  </div>
+  <div class="card">
+    <h2>Settings</h2>
+    <table>
+      <tr><td>Created by</td><td><%= c.creator || '—' %> · <span class="mono"><%= c.created_at %></span></td></tr>
+      <tr><td>Scheduled</td><td><% if (c.scheduled_at) { %><span data-utc="<%= c.scheduled_at %>"></span><% } else { %>—<% } %></td></tr>
+      <tr><td>Started / finished</td><td class="mono"><%= c.started_at || '—' %> / <%= c.finished_at || '—' %></td></tr>
+      <tr><td>Delay</td><td><%= c.delay_min %>–<%= c.delay_max %> s, pause <%= c.batch_pause %> s every <%= c.batch_size %> msgs</td></tr>
+      <tr><td>Send window</td><td><%= c.send_window_start ? c.send_window_start + ' – ' + c.send_window_end : 'any time' %></td></tr>
+      <tr><td>Phone column</td><td><%= c.phone_column %></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="actions" style="justify-content:space-between">
+    <h2 style="margin:0">Contacts</h2>
+    <div class="actions">
+      <a class="btn sm <%= !filter ? '' : 'sec' %>" href="?">All</a>
+      <% for (const f of ['pending','sent','failed','skipped']) { %><a class="btn sm <%= filter === f ? '' : 'sec' %>" href="?status=<%= f %>"><%= f %></a><% } %>
+    </div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table>
+    <tr><th>Phone</th><th>Status</th><th>Reason / sent at</th><% for (const col of columns) { if (col !== c.phone_column) { %><th><%= col %></th><% } } %></tr>
+    <% for (const r of recipients) { %>
+    <tr>
+      <td class="mono"><%= r.phone %></td>
+      <td><span class="badge <%= r.status %>"><%= r.status %></span></td>
+      <td class="muted"><%= r.reason || r.sent_at || '' %></td>
+      <% for (const col of columns) { if (col !== c.phone_column) { %><td><%= r.row[col] %></td><% } } %>
+    </tr>
+    <% } %>
+    <% if (!recipients.length) { %><tr><td colspan="<%= columns.length + 2 %>" class="muted">Nothing here.</td></tr><% } %>
+  </table>
+  </div>
+  <% if (pages > 1) { %><div class="actions" style="margin-top:10px">
+    <% for (let p = 1; p <= pages; p++) { %><a class="btn sm <%= p === page ? '' : 'sec' %>" href="?<%= filter ? 'status=' + filter + '&' : '' %>page=<%= p %>"><%= p %></a><% } %>
+  </div><% } %>
+</div>
+<script>window.__campaign = { id: <%= c.id %>, status: <%- JSON.stringify(c.status) %> };</script>
+<%- include('partials/footer') %>

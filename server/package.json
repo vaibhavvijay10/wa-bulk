@@ -1,0 +1,25 @@
+{
+  "name": "wa-bulk",
+  "version": "1.0.0",
+  "description": "Self-hosted WhatsApp bulk sender with Excel mail-merge, scheduling, inbox and team logins (wa-js + headless Chrome, built-in SQLite)",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node --no-warnings src/server.js",
+    "mock": "node --no-warnings src/server.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@wppconnect/wa-js": "^4.6.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "puppeteer-core": "^24.43.1",
+    "qrcode": "^1.5.4",
+    "xlsx": "^0.18.5"
+  }
+}

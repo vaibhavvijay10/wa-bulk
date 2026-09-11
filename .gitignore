@@ -1,0 +1,8 @@
+node_modules/
+data/
+.env
+runtime/
+*.log
+extension/test/e2e-profile/
+.DS_Store
+Thumbs.db

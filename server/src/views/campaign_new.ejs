@@ -1,0 +1,23 @@
+<%- include('partials/header', { title: 'New campaign' }) %>
+<h1>New campaign — step 1 of 2: upload contacts</h1>
+<% if (error) { %><div class="err"><%= error %></div><% } %>
+<div class="grid c2">
+  <div class="card">
+    <form method="post" action="/campaigns/upload" enctype="multipart/form-data">
+      <label>Excel or CSV file <small>(.xlsx, .xls, .csv — first sheet is used)</small></label>
+      <input type="file" name="sheet" accept=".xlsx,.xls,.csv,.xlsm,.ods" required>
+      <div style="margin-top:16px"><button class="btn" type="submit">Upload & continue →</button></div>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Sheet format</h2>
+    <p class="muted">Row 1 must be the header. One column holds the phone number; every other column becomes a merge field you can use in the message as <span class="mono">{{column name}}</span>.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th>phone</th><th>name</th><th>brand</th><th>bonus</th></tr>
+      <tr><td>919876543210</td><td>Rahul</td><td>Lucky7even</td><td>50 free spins</td></tr>
+      <tr><td>+44 7700 900123</td><td>Emma</td><td>Rooster.bet</td><td>€20</td></tr>
+    </table></div>
+    <p class="muted" style="margin-bottom:0">Numbers can include +, spaces or dashes. Numbers without a country code get the default code from Settings. Duplicates, invalid numbers and opted-out contacts are skipped automatically.</p>
+  </div>
+</div>
+<%- include('partials/footer') %>

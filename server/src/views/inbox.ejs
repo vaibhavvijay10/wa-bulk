@@ -1,0 +1,40 @@
+<%- include('partials/header', { title: 'Inbox' }) %>
+<h1>Inbox <span class="muted" style="font-size:13px;font-weight:400">— replies to the linked number (groups are ignored)</span></h1>
+<% if (mock) { %>
+<form method="post" action="/inbox/mock-incoming" class="row card" style="align-items:flex-end">
+  <div><label>Mock: simulate an incoming message from</label><input type="text" name="phone" value="919876543210"></div>
+  <div><label>Text</label><input type="text" name="body" value="STOP"></div>
+  <div style="flex:0"><button class="btn sec" type="submit">Simulate</button></div>
+</form>
+<% } %>
+<div class="split">
+  <div class="card threads" style="padding:0;max-height:70vh;overflow-y:auto">
+    <% if (!threads.length) { %><div class="muted" style="padding:14px">No replies yet.</div><% } %>
+    <% for (const t of threads) { %>
+    <a href="/inbox/<%= t.phone %>" class="<%= thread === t.phone ? 'active' : '' %>">
+      <div class="p">+<%= t.phone %> <% if (t.opted_out) { %><span class="badge failed">opted out</span><% } %></div>
+      <div class="b"><%= t.direction === 'out' ? 'You: ' : '' %><%= (t.body || '').slice(0, 60) %></div>
+      <div class="b mono"><%= t.created_at %></div>
+    </a>
+    <% } %>
+  </div>
+  <div class="card">
+    <% if (!thread) { %><p class="muted">Select a conversation.</p><% } else { %>
+    <div class="actions" style="justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin:0">+<%= thread %> <% if (optedOut) { %><span class="badge failed">opted out</span><% } %></h2>
+      <% if (!optedOut) { %><form class="inline" method="post" action="/optouts/add"><input type="hidden" name="phones" value="<%= thread %>"><input type="hidden" name="note" value="from inbox"><button class="btn sec sm" type="submit">Mark opted out</button></form>
+      <% } else { %><form class="inline" method="post" action="/optouts/remove"><input type="hidden" name="phone" value="<%= thread %>"><button class="btn sec sm" type="submit">Remove opt-out</button></form><% } %>
+    </div>
+    <div class="chat" id="chat">
+      <% for (const m of messages) { %>
+      <div class="bubble <%= m.direction %>" style="<%= m.direction === 'out' ? 'margin-left:auto' : '' %>"><%= m.has_media && !m.body ? '📎 media' : m.body %><div class="meta"><%= m.direction === 'out' ? 'You' : '' %> <%= m.created_at %><%= m.campaign_id ? ' · campaign #' + m.campaign_id : '' %></div></div>
+      <% } %>
+    </div>
+    <form method="post" action="/inbox/<%= thread %>/reply" style="margin-top:10px">
+      <div class="row"><div><input type="text" name="text" placeholder="Type a reply…" autocomplete="off" required></div><div style="flex:0"><button class="btn" type="submit">Send</button></div></div>
+    </form>
+    <% } %>
+  </div>
+</div>
+<script>window.__inbox = true;</script>
+<%- include('partials/footer') %>

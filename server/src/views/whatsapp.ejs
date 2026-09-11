@@ -1,0 +1,32 @@
+<%- include('partials/header', { title: 'WhatsApp' }) %>
+<h1>WhatsApp connection</h1>
+<div class="grid c2">
+  <div class="card">
+    <h2>Status: <span class="badge <%= wa.state %>" id="waState"><%= wa.state %></span></h2>
+    <div id="waInfo"><% if (wa.info) { %>Linked as <b><%= wa.info.pushname %></b> (+<%= wa.info.number %>)<% } %></div>
+    <% if (wa.error) { %><div class="err" style="margin-top:10px"><%= wa.error %></div><% } %>
+    <% if (user.role === 'admin') { %>
+    <div class="actions" style="margin-top:14px">
+      <form class="inline" method="post" action="/whatsapp/connect"><button class="btn" type="submit" <%= wa.state === 'ready' || wa.state === 'qr' || wa.state === 'starting' ? 'disabled' : '' %>>Connect</button></form>
+      <form class="inline" method="post" action="/whatsapp/restart"><button class="btn sec" type="submit">Restart session</button></form>
+      <form class="inline" method="post" action="/whatsapp/logout" onsubmit="return confirm('Unlink this number? You will need to scan the QR again.')"><button class="btn danger" type="submit">Unlink number</button></form>
+    </div>
+    <% } else { %><p class="muted">Only admins can link or unlink the number.</p><% } %>
+    <h2 style="margin-top:22px">How linking works</h2>
+    <ol class="muted" style="padding-left:18px;margin:0">
+      <li>On the phone with the sender number, open WhatsApp → <b>Linked devices</b> → <b>Link a device</b>.</li>
+      <li>Scan the QR code shown here. The server then runs as a linked device; the phone does not need to stay online.</li>
+      <li>The session is saved on the server, so it survives restarts. Re-scan only if WhatsApp logs the device out.</li>
+    </ol>
+  </div>
+  <div class="card qr">
+    <h2>QR code</h2>
+    <div id="qrBox">
+      <% if (wa.qr) { %><img src="<%= wa.qr %>" alt="QR code"><p class="muted">Scan with WhatsApp on the phone.</p>
+      <% } else if (wa.state === 'ready') { %><p class="muted">Connected — no QR needed.</p>
+      <% } else { %><p class="muted">Waiting for a QR code… (click Connect if nothing appears in ~30s)</p><% } %>
+    </div>
+  </div>
+</div>
+<script>window.__poll = { qr: true };</script>
+<%- include('partials/footer') %>
